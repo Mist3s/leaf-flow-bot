@@ -23,7 +23,8 @@ class UserService:
         buttons = [("Открыть приложение", self.webapp_url)]
         return text, buttons
 
-    def greeting_with_orders(self, user: UserProfile, has_orders: bool) -> tuple[str, list[str]]:
+    @staticmethod
+    def greeting_with_orders(user: UserProfile, has_orders: bool) -> tuple[str, list[str]]:
         name = user.firstName or "друг"
         if not has_orders:
             text = (

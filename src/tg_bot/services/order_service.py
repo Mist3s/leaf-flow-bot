@@ -10,7 +10,7 @@ class OrdersTextBuilder:
     def orders_overview(self, orders: OrderListResponse) -> list[str]:
         messages = []
         for order in orders.items:
-            messages.append(self._format_order(order))
+            messages.append(self.format_order(order))
         return messages
 
     def order_details(self, order: OrderDetails | None) -> str:
@@ -30,7 +30,8 @@ class OrdersTextBuilder:
             lines.append(f"Комментарий: {order.comment}")
         return "\n".join(lines)
 
-    def _format_order(self, order: OrderSummary) -> str:
+    @staticmethod
+    def format_order(order: OrderSummary) -> str:
         created_at = order.createdAt.strftime("%d.%m.%Y %H:%M")
         return (
             f"Заказ №{order.orderId}\n"
@@ -40,7 +41,8 @@ class OrdersTextBuilder:
             f"Оформлен: {created_at}"
         )
 
-    def _human_status(self, status: str) -> str:
+    @staticmethod
+    def _human_status(status: str) -> str:
         mapping = {
             "created": "Создан",
             "processing": "В обработке",

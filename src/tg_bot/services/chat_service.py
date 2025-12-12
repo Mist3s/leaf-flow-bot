@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from aiogram import Bot
-from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message
+from aiogram.types import CallbackQuery, Message
 
 from tg_bot.config import Settings
 from tg_bot.infrastructure.mapping_store import MappingStore, ReplyTarget

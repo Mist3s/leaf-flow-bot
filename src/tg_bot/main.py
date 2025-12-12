@@ -2,15 +2,13 @@
 from __future__ import annotations
 
 import asyncio
-import logging
 import signal
 from typing import Any
 
 import uvicorn
-from aiogram import Bot
 
 from tg_bot.bot.app import create_bot_and_dispatcher
-from tg_bot.config import Settings, load_settings
+from tg_bot.config import load_settings
 from tg_bot.http_app.app import create_app
 from tg_bot.logging import configure_logging
 
@@ -31,7 +29,7 @@ async def _run() -> None:
     server = uvicorn.Server(config)
 
     async def shutdown() -> None:
-        await bot.session.aclose()
+        await bot.session.close()
 
     loop = asyncio.get_running_loop()
     for sig in (signal.SIGTERM, signal.SIGINT):

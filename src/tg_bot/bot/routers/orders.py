@@ -33,7 +33,7 @@ async def list_orders(message: Message, settings: Settings, users_api: UsersApi,
         return
 
     for order in orders.items:
-        await message.answer(order_builder._format_order(order), reply_markup=order_actions(order.orderId))
+        await message.answer(order_builder.format_order(order), reply_markup=order_actions(order.orderId))
 
 
 @router.callback_query(lambda c: c.data and c.data.startswith("order:"))
