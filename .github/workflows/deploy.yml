@@ -1,0 +1,83 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+env:
+  BUILD_DIR: ${{ vars.PAGES_BUILD_DIR }}
+  BUILD_COMMAND: ${{ vars.PAGES_BUILD_COMMAND }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v4
+
+      - name: Apply defaults for build variables
+        run: |
+          : "${BUILD_DIR:=public}"
+          : "${BUILD_COMMAND:=}"
+          {
+            echo "BUILD_DIR=$BUILD_DIR"
+            echo "BUILD_COMMAND=$BUILD_COMMAND"
+          } >> "$GITHUB_ENV"
+
+      - name: Run custom build command (optional)
+        run: |
+          if [ -n "$BUILD_COMMAND" ]; then
+            echo "Running build command: $BUILD_COMMAND"
+            eval "$BUILD_COMMAND"
+          else
+            echo "No BUILD_COMMAND provided, skipping build step."
+          fi
+
+      - name: Ensure build directory exists
+        run: |
+          if [ ! -d "$BUILD_DIR" ]; then
+            echo "::notice::Build directory '$BUILD_DIR' not found. Creating placeholder page."
+            mkdir -p "$BUILD_DIR"
+            cat > "$BUILD_DIR/index.html" <<'HTML'
+            <!doctype html>
+            <html lang="en">
+            <head>
+              <meta charset="UTF-8">
+              <title>LeafFlow Bot</title>
+            </head>
+            <body>
+              <h1>LeafFlow Bot</h1>
+              <p>GitHub Pages placeholder. Set PAGES_BUILD_DIR and PAGES_BUILD_COMMAND repository variables to publish your WebApp bundle.</p>
+            </body>
+            </html>
+HTML
+          fi
+
+      - name: Upload GitHub Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ${{ env.BUILD_DIR }}
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
