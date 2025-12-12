@@ -10,7 +10,7 @@ class OrdersApi(BaseApiClient):
     async def list_orders(self, telegram_id: int, limit: int = 5, offset: int = 0) -> OrderListResponse:
         response = await self._get(
             "/api/v1/internal/orders",
-            params={"telegramId": telegram_id, "limit": limit, "offset": offset},
+            params={"telegram_id": telegram_id, "limit": limit, "offset": offset},
         )
         return OrderListResponse.model_validate(response.json())
 

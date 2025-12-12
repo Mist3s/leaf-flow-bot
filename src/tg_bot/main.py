@@ -28,17 +28,39 @@ async def _run() -> None:
     )
     server = uvicorn.Server(config)
 
-    async def shutdown() -> None:
+    shutdown_event = asyncio.Event()
+
+    async def cleanup() -> None:
         await bot.session.close()
+
+    def signal_handler() -> None:
+        shutdown_event.set()
 
     loop = asyncio.get_running_loop()
     for sig in (signal.SIGTERM, signal.SIGINT):
-        loop.add_signal_handler(sig, lambda: asyncio.create_task(server.shutdown()))
+        loop.add_signal_handler(sig, signal_handler)
 
+    serve_task = asyncio.create_task(server.serve())
+    
     try:
-        await server.serve()
+        # Wait for shutdown signal
+        await shutdown_event.wait()
+        # Properly shutdown the server and await completion
+        await server.shutdown()
+        # Wait for serve task to complete
+        try:
+            await serve_task
+        except asyncio.CancelledError:
+            pass
     finally:
-        await shutdown()
+        # Ensure serve task is cancelled if still running
+        if not serve_task.done():
+            serve_task.cancel()
+            try:
+                await serve_task
+            except asyncio.CancelledError:
+                pass
+        await cleanup()
 
 
 def run() -> Any:

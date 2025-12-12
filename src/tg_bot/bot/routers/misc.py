@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from aiogram import Router
+from aiogram import F, Router
+from aiogram.enums import ChatType
 from aiogram.filters import Command
 from aiogram.types import Message
 
@@ -16,8 +17,3 @@ async def help_command(message: Message):
         "• Поддержка — задать любой вопрос\n"
         "• Открыть приложение — каталог товаров и оформление заказа"
     )
-
-
-@router.message()
-async def fallback(message: Message):
-    await message.answer("Неизвестная команда. Используйте меню или введите /help")

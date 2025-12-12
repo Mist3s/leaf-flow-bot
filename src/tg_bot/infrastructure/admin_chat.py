@@ -29,13 +29,19 @@ async def send_support_message_to_admin(
     )
 
     header_message = await bot.send_message(chat_id=settings.admin_chat_id, text=header, reply_markup=reply_button)
-    await bot.copy_message(
+    target = ReplyTarget(user_telegram_id=telegram_id, order_id=order_id)
+    mapping_store.set_mapping(header_message.message_id, target)
+    
+    # Копируем сообщение пользователя как ответ на header_message
+    copied_message = await bot.copy_message(
         chat_id=settings.admin_chat_id,
         from_chat_id=source_chat_id,
         message_id=source_message_id,
         reply_to_message_id=header_message.message_id,
     )
-    mapping_store.set_mapping(header_message.message_id, ReplyTarget(user_telegram_id=telegram_id, order_id=order_id))
+    # Сохраняем маппинг также для скопированного сообщения, чтобы можно было отвечать на него напрямую
+    if copied_message:
+        mapping_store.set_mapping(copied_message.message_id, target)
 
 
 async def notify_order_status_update(*, bot: Bot, settings: Settings, payload: dict[str, Any]) -> None:
