@@ -53,7 +53,7 @@ class SupportTopicsService:
             # Продолжаем создание нового топика, если не удалось получить связь
 
         # Связи нет - создаём новый топик
-        topic_name = f"Пользователь {user_fullname or user_telegram_id}"
+        topic_name = f"{user_fullname or user_telegram_id}"
         if order_id:
             topic_name = f"{topic_name} (Заказ №{order_id})"
         

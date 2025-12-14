@@ -85,7 +85,6 @@ async def forward_admin_message_to_user(
     """
     Хендлер для пересылки сообщений админа из топика пользователю в личку.
     """
-    # Проверка, что это админский чат и сообщение в топике
     if message.chat.id != settings.admin_chat_id:
         return
     

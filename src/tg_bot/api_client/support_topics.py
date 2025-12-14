@@ -95,4 +95,3 @@ class SupportTopicsApi(BaseApiClient):
                 f"thread_id={thread_id}, error={e}"
             )
             raise
-
