@@ -14,3 +14,12 @@ def order_actions(order_id: str) -> InlineKeyboardMarkup:
 
 def open_webapp_button(webapp_url: str) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="Открыть приложение", web_app=WebAppInfo(url=webapp_url))]])
+
+
+def orders_pagination_keyboard(next_offset: int) -> InlineKeyboardMarkup:
+    """Клавиатура с кнопкой пагинации для списка заказов"""
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="Показать еще", callback_data=f"orders:page:{next_offset}")]
+        ]
+    )

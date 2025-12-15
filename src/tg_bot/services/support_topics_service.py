@@ -7,16 +7,29 @@ from aiogram.exceptions import TelegramBadRequest
 from aiogram.types import Message
 
 from tg_bot.api_client.support_topics import SupportTopicsApi
+from tg_bot.api_client.orders import OrdersApi
+from tg_bot.api_client.models import OrderSummary
 from tg_bot.config import Settings
+from tg_bot.services.order_service import OrdersTextBuilder
 
 logger = logging.getLogger(__name__)
 
 
 class SupportTopicsService:
-    def __init__(self, *, bot: Bot, settings: Settings, support_topics_api: SupportTopicsApi):
+    def __init__(
+        self, 
+        *, 
+        bot: Bot, 
+        settings: Settings, 
+        support_topics_api: SupportTopicsApi,
+        orders_api: OrdersApi | None = None,
+        order_builder: OrdersTextBuilder | None = None,
+    ):
         self.bot = bot
         self.settings = settings
         self.support_topics_api = support_topics_api
+        self.orders_api = orders_api
+        self.order_builder = order_builder
 
     async def get_or_create_thread(
         self,
@@ -54,8 +67,6 @@ class SupportTopicsService:
 
         # Связи нет - создаём новый топик
         topic_name = f"{user_fullname or user_telegram_id}"
-        if order_id:
-            topic_name = f"{topic_name} (Заказ №{order_id})"
         
         logger.info(f"Создание нового топика для user_telegram_id={user_telegram_id}, название: {topic_name}")
         try:
@@ -185,5 +196,147 @@ class SupportTopicsService:
         except Exception as e:
             logger.error(
                 f"Ошибка при пересылке сообщения админа пользователю {user_telegram_id}: {e}"
+            )
+
+    async def notify_admin_about_order_chat(
+        self,
+        user_telegram_id: int,
+        user_fullname: str | None,
+        order_id: str,
+    ) -> None:
+        """
+        Уведомить администратора о том, что пользователь нажал кнопку "Чат по заказу".
+        
+        Args:
+            user_telegram_id: Telegram ID пользователя
+            user_fullname: Полное имя пользователя
+            order_id: ID заказа
+        """
+        try:
+            # Получаем или создаем топик для пользователя
+            thread_id = await self.get_or_create_thread(
+                user_telegram_id=user_telegram_id,
+                user_fullname=user_fullname,
+            )
+            
+            # Получаем информацию о заказе
+            order_info = None
+            if self.orders_api:
+                try:
+                    order_details = await self.orders_api.get_order(order_id)
+                    if order_details and self.order_builder:
+                        order_info = self.order_builder.format_order(
+                            OrderSummary(
+                                orderId=order_details.orderId,
+                                customerName=None,
+                                deliveryMethod=order_details.deliveryMethod or "",
+                                total=order_details.total,
+                                status=order_details.status,
+                                createdAt=order_details.createdAt,
+                            )
+                        )
+                except Exception as e:
+                    logger.warning(f"Не удалось получить информацию о заказе {order_id}: {e}")
+            
+            # Формируем сообщение
+            message_lines = [
+                f"👤 Пользователь нажал кнопку «Чат по заказу»",
+                f"",
+                f"Заказ: #{order_id}",
+            ]
+            
+            if order_info:
+                message_lines.append("")
+                message_lines.append("Информация по заказу:")
+                message_lines.append(order_info)
+            
+            message_text = "\n".join(message_lines)
+            
+            # Отправляем сообщение администратору в топик
+            await self.bot.send_message(
+                chat_id=self.settings.admin_chat_id,
+                message_thread_id=thread_id,
+                text=message_text,
+            )
+            logger.info(
+                f"Отправлено уведомление администратору о чате по заказу {order_id} "
+                f"для пользователя {user_telegram_id} в топик {thread_id}"
+            )
+        except Exception as e:
+            logger.error(
+                f"Ошибка при отправке уведомления администратору о чате по заказу {order_id} "
+                f"для пользователя {user_telegram_id}: {e}",
+                exc_info=True
+            )
+
+    async def notify_admin_about_new_order(
+        self,
+        user_telegram_id: int,
+        user_fullname: str | None,
+        order_id: str,
+    ) -> None:
+        """
+        Уведомить администратора о новом заказе в топик пользователя.
+        
+        Args:
+            user_telegram_id: Telegram ID пользователя
+            user_fullname: Полное имя пользователя
+            order_id: ID заказа
+        """
+        try:
+            # Получаем или создаем топик для пользователя
+            thread_id = await self.get_or_create_thread(
+                user_telegram_id=user_telegram_id,
+                user_fullname=user_fullname,
+            )
+            
+            # Получаем информацию о заказе
+            order_info = None
+            if self.orders_api:
+                try:
+                    order_details = await self.orders_api.get_order(order_id)
+                    if order_details and self.order_builder:
+                        order_info = self.order_builder.format_order(
+                            OrderSummary(
+                                orderId=order_details.orderId,
+                                customerName=None,
+                                deliveryMethod=order_details.deliveryMethod or "",
+                                total=order_details.total,
+                                status=order_details.status,
+                                createdAt=order_details.createdAt,
+                            )
+                        )
+                except Exception as e:
+                    logger.warning(f"Не удалось получить информацию о заказе {order_id}: {e}")
+            
+            # Формируем сообщение
+            message_lines = [
+                f"✅ Новый заказ создан",
+                f"",
+                f"Заказ: #{order_id}",
+            ]
+            
+            if order_info:
+                message_lines.append("")
+                message_lines.append("Информация по заказу:")
+                message_lines.append(order_info)
+            
+            message_text = "\n".join(message_lines)
+            
+            # Отправляем сообщение администратору в топик
+            await self.bot.send_message(
+                chat_id=self.settings.admin_chat_id,
+                message_thread_id=thread_id,
+                text=message_text,
+            )
+            logger.info(
+                f"Отправлено уведомление администратору о новом заказе {order_id} "
+                f"для пользователя {user_telegram_id} в топик {thread_id}"
+            )
+        except Exception as e:
+            logger.error(
+                f"Ошибка при отправке уведомления администратору о новом заказе {order_id} "
+                f"для пользователя {user_telegram_id}: {e}",
+                exc_info=True
             )
 

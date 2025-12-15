@@ -1,12 +1,16 @@
 from __future__ import annotations
 
+import logging
 from typing import Any, Optional
 
 from aiogram import Bot
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
+from tg_bot.bot.keyboards.inline import order_actions
 from tg_bot.config import Settings
 from tg_bot.infrastructure.mapping_store import MappingStore, ReplyTarget
+from tg_bot.services.support_topics_service import SupportTopicsService
+from tg_bot.api_client.users import UsersApi
 
 
 async def send_support_message_to_admin(
@@ -44,7 +48,14 @@ async def send_support_message_to_admin(
         mapping_store.set_mapping(copied_message.message_id, target)
 
 
-async def notify_order_status_update(*, bot: Bot, settings: Settings, payload: dict[str, Any]) -> None:
+async def notify_order_status_update(
+    *, 
+    bot: Bot, 
+    settings: Settings, 
+    payload: dict[str, Any],
+    support_topics_service: SupportTopicsService | None = None,
+    users_api: UsersApi | None = None,
+) -> None:
     order_id = payload.get("orderId")
     user_telegram_id = payload.get("userTelegramId")
     new_status = payload.get("newStatus")
@@ -54,12 +65,49 @@ async def notify_order_status_update(*, bot: Bot, settings: Settings, payload: d
         return
 
     status_text = _human_status(new_status)
-    lines = [f"Обновление по заказу №{order_id}", f"Новый статус: {status_text}"]
+
+    if status_text == "Создан":
+        lines = [
+            f"✅ Заказ #{order_id} создан.",
+            "В ближайшее время с вами свяжется оператор. Если у вас возникнут вопросы, вы можете написать нам, нажав соответствующую кнопку ниже."
+        ]
+        
+        # Уведомляем администратора о новом заказе
+        if support_topics_service:
+            try:
+                # Получаем имя пользователя
+                user_fullname = None
+                if users_api:
+                    try:
+                        user_profile = await users_api.get_by_telegram(user_telegram_id)
+                        if user_profile:
+                            user_fullname = user_profile.full_name()
+                    except Exception as e:
+                        logger = logging.getLogger(__name__)
+                        logger.warning(f"Не удалось получить профиль пользователя {user_telegram_id}: {e}")
+                
+                await support_topics_service.notify_admin_about_new_order(
+                    user_telegram_id=user_telegram_id,
+                    user_fullname=user_fullname,
+                    order_id=order_id,
+                )
+            except Exception as e:
+                logger = logging.getLogger(__name__)
+                logger.error(f"Ошибка при отправке уведомления администратору о новом заказе: {e}", exc_info=True)
+
+    else:
+        lines = [
+            f"🔔 Обновление по заказу #{order_id}",
+            f"📦 Новый статус: {status_text}"
+        ]
+
     if comment:
         lines.append(str(comment))
+
     await bot.send_message(
         chat_id=user_telegram_id,
         text="\n".join(lines),
+        reply_markup = order_actions(order_id)
     )
 
 
@@ -78,7 +126,7 @@ def _human_status(status: str | None) -> str:
 def _build_header(*, telegram_id: int, username: str | None, user_fullname: str, order_id: Optional[str]) -> str:
     header_lines = []
     if order_id:
-        header_lines.append(f"[Заказ №{order_id}]")
+        header_lines.append(f"[Заказ #{order_id}]")
     else:
         header_lines.append("[Обращение без заказа]")
     username_part = f"@{username}" if username else "без username"

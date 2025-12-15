@@ -6,11 +6,62 @@ from aiogram.types import CallbackQuery, Message
 
 from tg_bot.api_client.orders import OrdersApi
 from tg_bot.api_client.users import UsersApi
-from tg_bot.bot.keyboards.inline import order_actions, open_webapp_button
+from tg_bot.bot.keyboards.inline import order_actions, open_webapp_button, orders_pagination_keyboard
 from tg_bot.config import Settings
 from tg_bot.services.order_service import OrdersTextBuilder
 
 router = Router()
+
+# Лимит заказов на странице
+ORDERS_PER_PAGE = 3
+
+
+async def _send_orders_page(
+    message_or_callback: Message | CallbackQuery,
+    user_telegram_id: int,
+    orders_api: OrdersApi,
+    order_builder: OrdersTextBuilder,
+    offset: int = 0,
+) -> None:
+    """Отправить страницу заказов с пагинацией"""
+    orders = await orders_api.list_orders(user_telegram_id, limit=ORDERS_PER_PAGE, offset=offset)
+    
+    if not orders.items:
+        text = "Больше заказов нет." if offset > 0 else "У вас пока нет заказов."
+        if isinstance(message_or_callback, CallbackQuery):
+            await message_or_callback.message.answer(text)
+            await message_or_callback.answer()
+        else:
+            await message_or_callback.answer(text)
+        return
+
+    # Отправляем каждый заказ отдельным сообщением
+    for order in orders.items:
+        if isinstance(message_or_callback, CallbackQuery):
+            await message_or_callback.message.answer(
+                order_builder.format_order(order), 
+                reply_markup=order_actions(order.orderId)
+            )
+        else:
+            await message_or_callback.answer(
+                order_builder.format_order(order), 
+                reply_markup=order_actions(order.orderId)
+            )
+    
+    # Если вернулось ровно ORDERS_PER_PAGE заказов, возможно есть еще
+    if len(orders.items) == ORDERS_PER_PAGE:
+        next_offset = offset + ORDERS_PER_PAGE
+        if isinstance(message_or_callback, CallbackQuery):
+            await message_or_callback.message.answer(
+                "Показать еще заказы?",
+                reply_markup=orders_pagination_keyboard(next_offset)
+            )
+            await message_or_callback.answer()
+        else:
+            await message_or_callback.answer(
+                "Показать еще заказы?",
+                reply_markup=orders_pagination_keyboard(next_offset)
+            )
 
 
 @router.message(Command("orders"))
@@ -19,21 +70,45 @@ async def list_orders(message: Message, settings: Settings, users_api: UsersApi,
     user_profile = await users_api.get_by_telegram(message.from_user.id) if message.from_user else None
     if not user_profile:
         await message.answer(
-            "Похоже, вы ещё не заходили в приложение. Нажмите кнопку, чтобы открыть его.",
+            "Похоже, вы ещё не открывали приложение. Нажмите кнопку ниже, чтобы перейти в него.",
             reply_markup=open_webapp_button(str(settings.webapp_url)),
         )
         return
 
-    orders = await orders_api.list_orders(user_profile.telegramId)
-    if not orders.items:
-        await message.answer(
-            "У вас пока нет заказов.\n\nВы можете оформить первый заказ через наше приложение.",
-            reply_markup=open_webapp_button(str(settings.webapp_url)),
-        )
-        return
+    await _send_orders_page(message, user_profile.telegramId, orders_api, order_builder, offset=0)
 
-    for order in orders.items:
-        await message.answer(order_builder.format_order(order), reply_markup=order_actions(order.orderId))
+
+@router.callback_query(lambda c: c.data and c.data.startswith("orders:page:"))
+async def orders_pagination(callback: CallbackQuery, users_api: UsersApi, orders_api: OrdersApi, order_builder: OrdersTextBuilder):
+    """Обработчик пагинации списка заказов"""
+    if not callback.from_user:
+        await callback.answer("Ошибка: не удалось определить пользователя")
+        return
+    
+    # Удаляем сообщение с кнопкой "Показать еще"
+    if callback.message:
+        try:
+            await callback.message.delete()
+        except Exception:
+            # Если не удалось удалить (например, сообщение уже удалено), продолжаем
+            pass
+    
+    await callback.answer()
+    
+    user_profile = await users_api.get_by_telegram(callback.from_user.id)
+    if not user_profile:
+        if callback.message:
+            await callback.message.answer("Ошибка: пользователь не найден")
+        return
+    
+    try:
+        offset = int(callback.data.split(":")[-1])
+    except (ValueError, IndexError):
+        if callback.message:
+            await callback.message.answer("Ошибка: неверный формат данных")
+        return
+    
+    await _send_orders_page(callback, user_profile.telegramId, orders_api, order_builder, offset=offset)
 
 
 @router.callback_query(lambda c: c.data and c.data.startswith("order:"))

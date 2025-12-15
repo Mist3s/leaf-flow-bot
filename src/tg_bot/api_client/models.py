@@ -1,9 +1,20 @@
 from __future__ import annotations
 
 from datetime import datetime
+from decimal import Decimal
 from typing import Optional
 
 from pydantic import BaseModel, Field
+
+
+class RegisterUserRequest(BaseModel):
+    """Модель запроса для регистрации пользователя"""
+    telegramId: int
+    firstName: Optional[str] = None
+    lastName: Optional[str] = None
+    username: Optional[str] = None
+    languageCode: Optional[str] = None
+    photoUrl: Optional[str] = None
 
 
 class UserProfile(BaseModel):
@@ -52,6 +63,14 @@ class OrderListResponse(BaseModel):
     items: list[OrderSummary] = Field(default_factory=list)
 
 
+class OrderItem(BaseModel):
+    productId: str
+    variantId: str
+    quantity: int
+    price: Decimal
+    total: Decimal
+
+
 class OrderDetails(BaseModel):
     orderId: str
     status: str
@@ -59,3 +78,4 @@ class OrderDetails(BaseModel):
     deliveryMethod: Optional[str] = None
     createdAt: datetime
     comment: Optional[str] = None
+    items: list[OrderItem]

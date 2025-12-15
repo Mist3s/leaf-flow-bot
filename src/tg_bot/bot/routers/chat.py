@@ -11,13 +11,28 @@ router = Router()
 
 
 @router.callback_query(lambda c: c.data and c.data.startswith("chat:order:"))
-async def start_order_chat(callback: CallbackQuery, state: FSMContext):
+async def start_order_chat(
+    callback: CallbackQuery, 
+    state: FSMContext,
+    support_topics_service: SupportTopicsService,
+):
     """Начало чата по заказу - используем систему топиков"""
     order_id = callback.data.split(":")[-1]
     await state.update_data(order_id=order_id)
     await state.set_state(OrderChatStates.waiting_message)
+    
+    # Уведомляем администратора о том, что пользователь нажал кнопку "Чат по заказу"
+    if callback.from_user:
+        user_fullname = callback.from_user.full_name
+        await support_topics_service.notify_admin_about_order_chat(
+            user_telegram_id=callback.from_user.id,
+            user_fullname=user_fullname,
+            order_id=order_id,
+        )
+    
     await callback.message.answer(
-        f"Вы пишете по заказу №{order_id}.\nОтправьте сообщение (можно текст, фото, файл и т.д.)"
+        f"Вы пишете по заказу #{order_id}.\n\n"
+        "Отправьте сообщение (текст, фото, файл и т.д.) — мы передадим его оператору."
     )
     await callback.answer()
 
@@ -32,5 +47,5 @@ async def relay_order_chat(
     data = await state.get_data()
     order_id = data.get("order_id")
     await support_topics_service.forward_user_to_topic(message, order_id=order_id)
-    await message.answer(f"Ваше сообщение по заказу №{order_id} отправлено оператору.")
+    await message.answer(f"✅ Ваше сообщение по заказу #{order_id} отправлено оператору.")
     await state.clear()

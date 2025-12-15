@@ -29,6 +29,8 @@ def create_bot_and_dispatcher(settings: Settings) -> tuple[Bot, Dispatcher]:
         bot=bot,
         settings=settings,
         support_topics_api=support_topics_api,
+        orders_api=orders_api,
+        order_builder=order_builder,
     )
 
     dispatcher['settings'] = settings
