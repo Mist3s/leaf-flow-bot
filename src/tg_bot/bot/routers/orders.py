@@ -27,7 +27,13 @@ async def _send_orders_page(
     orders = await orders_api.list_orders(user_telegram_id, limit=ORDERS_PER_PAGE, offset=offset)
     
     if not orders.items:
-        text = "Больше заказов нет." if offset > 0 else "У вас пока нет заказов."
+        if offset > 0:
+            text = "✅ <b>Больше заказов нет</b>\n\nВы просмотрели все свои заказы."
+        else:
+            text = (
+                "📦 <b>У вас пока нет заказов</b>\n\n"
+                "Вы можете оформить первый заказ в приложении — нажмите кнопку ниже 👇"
+            )
         if isinstance(message_or_callback, CallbackQuery):
             await message_or_callback.message.answer(text)
             await message_or_callback.answer()
@@ -51,15 +57,16 @@ async def _send_orders_page(
     # Если вернулось ровно ORDERS_PER_PAGE заказов, возможно есть еще
     if len(orders.items) == ORDERS_PER_PAGE:
         next_offset = offset + ORDERS_PER_PAGE
+        pagination_text = "📄 <b>Показать еще заказы?</b>\n\nНажмите кнопку ниже 👇"
         if isinstance(message_or_callback, CallbackQuery):
             await message_or_callback.message.answer(
-                "Показать еще заказы?",
+                pagination_text,
                 reply_markup=orders_pagination_keyboard(next_offset)
             )
             await message_or_callback.answer()
         else:
             await message_or_callback.answer(
-                "Показать еще заказы?",
+                pagination_text,
                 reply_markup=orders_pagination_keyboard(next_offset)
             )
 
@@ -70,7 +77,8 @@ async def list_orders(message: Message, settings: Settings, users_api: UsersApi,
     user_profile = await users_api.get_by_telegram(message.from_user.id) if message.from_user else None
     if not user_profile:
         await message.answer(
-            "Похоже, вы ещё не открывали приложение. Нажмите кнопку ниже, чтобы перейти в него.",
+            "📱 <b>Привет!</b>\n\n"
+            "Похоже, вы ещё не открывали приложение. Нажмите кнопку ниже, чтобы перейти в него 👇",
             reply_markup=open_webapp_button(str(settings.webapp_url)),
         )
         return
@@ -82,7 +90,7 @@ async def list_orders(message: Message, settings: Settings, users_api: UsersApi,
 async def orders_pagination(callback: CallbackQuery, users_api: UsersApi, orders_api: OrdersApi, order_builder: OrdersTextBuilder):
     """Обработчик пагинации списка заказов"""
     if not callback.from_user:
-        await callback.answer("Ошибка: не удалось определить пользователя")
+        await callback.answer("❌ Ошибка: не удалось определить пользователя")
         return
     
     # Удаляем сообщение с кнопкой "Показать еще"
@@ -98,14 +106,14 @@ async def orders_pagination(callback: CallbackQuery, users_api: UsersApi, orders
     user_profile = await users_api.get_by_telegram(callback.from_user.id)
     if not user_profile:
         if callback.message:
-            await callback.message.answer("Ошибка: пользователь не найден")
+            await callback.message.answer("❌ <b>Ошибка</b>\n\nПользователь не найден")
         return
     
     try:
         offset = int(callback.data.split(":")[-1])
     except (ValueError, IndexError):
         if callback.message:
-            await callback.message.answer("Ошибка: неверный формат данных")
+            await callback.message.answer("❌ <b>Ошибка</b>\n\nНеверный формат данных")
         return
     
     await _send_orders_page(callback, user_profile.telegramId, orders_api, order_builder, offset=offset)

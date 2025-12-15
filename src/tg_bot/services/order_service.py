@@ -15,36 +15,85 @@ class OrdersTextBuilder:
 
     def order_details(self, order: OrderDetails | None) -> str:
         if not order:
-            return "Не удалось получить детали заказа. Попробуйте позже."
+            return "❌ <b>Ошибка</b>\n\nНе удалось получить детали заказа. Попробуйте позже."
 
         created_at = order.createdAt.strftime("%d.%m.%Y %H:%M")
         status_text = self._human_status(order.status)
+        status_emoji = self._status_emoji(order.status)
         delivery = self._human_delivery(order.deliveryMethod) or "-"
+        delivery_emoji = self._delivery_emoji(order.deliveryMethod)
+        
+        # Заголовок заказа
         lines = [
-            f"Заказ #{order.orderId}",
-            f"Статус: {status_text}",
-            f"Доставка: {delivery}",
-            f"Сумма: {order.total}",
-            f"Оформлен: {created_at}",
-            f"------------------------\n"
+            f"📦 <b>Заказ #{order.orderId}</b>",
+            "",
+            f"{status_emoji} <b>Статус:</b> {status_text}",
+            f"{delivery_emoji} <b>Доставка:</b> {delivery}",
+            f"💰 <b>Сумма:</b> {order.total} ₽",
+            f"📅 <b>Оформлен:</b> {created_at}",
         ]
-
-        items = [f'# {_.productId} ({_.variantId}) {_.quantity} шт - {_.total}' for _ in order.items]
-
+        
+        # Позиции заказа
+        if order.items:
+            lines.append("")
+            lines.append("━━━━━━━━━━━━━━━━━━━━")
+            lines.append("")
+            lines.append("🛍️ <b>Состав заказа:</b>")
+            lines.append("")
+            
+            # Используем названия, если они доступны, иначе используем ID
+            for idx, item in enumerate(order.items, 1):
+                product_display = item.productName if item.productName else item.productId
+                variant_display = item.variantWeight if item.variantWeight else item.variantId
+                lines.append(
+                    f"{idx}. <b>{product_display}</b>\n"
+                    f"   └ {variant_display} × {item.quantity} шт = <b>{item.total} ₽</b>"
+                )
+        
+        # Комментарий
         if order.comment:
-            lines.append(f"Комментарий: {order.comment}")
+            lines.append("")
+            lines.append("━━━━━━━━━━━━━━━━━━━━")
+            lines.append("")
+            lines.append(f"💬 <b>Комментарий:</b>\n{order.comment}")
 
-        return "\n".join(lines) + "\n".join(items)
+        return "\n".join(lines)
+    
+    @staticmethod
+    def _status_emoji(status: str) -> str:
+        """Возвращает эмодзи для статуса заказа"""
+        mapping = {
+            "created": "🆕",
+            "processing": "⏳",
+            "paid": "✅",
+            "fulfilled": "🎉",
+            "cancelled": "❌",
+            "shipped": "🚚",
+        }
+        return mapping.get(status, "📋")
+    
+    @staticmethod
+    def _delivery_emoji(delivery_method: str | None) -> str:
+        """Возвращает эмодзи для способа доставки"""
+        mapping = {
+            "courier": "🚚",
+            "pickup": "🏪",
+            "cdek": "📦",
+        }
+        return mapping.get(delivery_method or "", "📍")
 
     @staticmethod
     def format_order(order: OrderSummary) -> str:
         created_at = order.createdAt.strftime("%d.%m.%Y %H:%M")
+        status_emoji = OrdersTextBuilder._status_emoji(order.status)
+        delivery_emoji = OrdersTextBuilder._delivery_emoji(order.deliveryMethod)
+        
         return (
-            f"Заказ #{order.orderId}\n"
-            f"Статус: {order.human_status}\n"
-            f"Доставка: {order.human_delivery}\n"
-            f"Сумма: {order.total}\n"
-            f"Оформлен: {created_at}"
+            f"📦 <b>Заказ #{order.orderId}</b>\n"
+            f"{status_emoji} <b>Статус:</b> {order.human_status}\n"
+            f"{delivery_emoji} <b>Доставка:</b> {order.human_delivery}\n"
+            f"💰 <b>Сумма:</b> {order.total} ₽\n"
+            f"📅 <b>Оформлен:</b> {created_at}"
         )
 
     @staticmethod

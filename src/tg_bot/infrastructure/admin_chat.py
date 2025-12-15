@@ -66,9 +66,11 @@ async def notify_order_status_update(
 
     status_text = _human_status(new_status)
 
+    status_emoji = _status_emoji_emoji(new_status)
+    
     if status_text == "Создан":
         lines = [
-            f"✅ Заказ #{order_id} создан.",
+            f"✅ <b>Заказ #{order_id} создан</b>\n",
             "В ближайшее время с вами свяжется оператор. Если у вас возникнут вопросы, вы можете написать нам, нажав соответствующую кнопку ниже."
         ]
         
@@ -97,12 +99,13 @@ async def notify_order_status_update(
 
     else:
         lines = [
-            f"🔔 Обновление по заказу #{order_id}",
-            f"📦 Новый статус: {status_text}"
+            f"🔔 <b>Обновление по заказу #{order_id}</b>\n",
+            f"{status_emoji} <b>Новый статус:</b> {status_text}"
         ]
 
     if comment:
-        lines.append(str(comment))
+        lines.append("")
+        lines.append(f"💬 <b>Комментарий:</b>\n{comment}")
 
     await bot.send_message(
         chat_id=user_telegram_id,
@@ -123,12 +126,27 @@ def _human_status(status: str | None) -> str:
     return mapping.get(status or "", status or "Неизвестно")
 
 
+def _status_emoji_emoji(status: str | None) -> str:
+    """Возвращает эмодзи для статуса заказа"""
+    mapping = {
+        "created": "🆕",
+        "processing": "⏳",
+        "paid": "✅",
+        "fulfilled": "🎉",
+        "cancelled": "❌",
+        "shipped": "🚚",
+    }
+    return mapping.get(status or "", "📋")
+
+
 def _build_header(*, telegram_id: int, username: str | None, user_fullname: str, order_id: Optional[str]) -> str:
     header_lines = []
     if order_id:
-        header_lines.append(f"[Заказ #{order_id}]")
+        header_lines.append(f"📦 <b>Заказ #{order_id}</b>")
     else:
-        header_lines.append("[Обращение без заказа]")
+        header_lines.append("💬 <b>Обращение без заказа</b>")
+    header_lines.append("")
     username_part = f"@{username}" if username else "без username"
-    header_lines.append(f"Пользователь: {user_fullname} ({username_part} / tg_id={telegram_id})")
+    header_lines.append(f"👤 <b>Пользователь:</b> {user_fullname}")
+    header_lines.append(f"   {username_part} | ID: {telegram_id}")
     return "\n".join(header_lines)

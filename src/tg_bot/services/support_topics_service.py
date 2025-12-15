@@ -240,14 +240,17 @@ class SupportTopicsService:
             
             # Формируем сообщение
             message_lines = [
-                f"👤 Пользователь нажал кнопку «Чат по заказу»",
+                f"💬 <b>Пользователь нажал кнопку «Чат по заказу»</b>",
                 f"",
-                f"Заказ: #{order_id}",
+                f"📦 <b>Заказ:</b> #{order_id}",
             ]
             
             if order_info:
                 message_lines.append("")
-                message_lines.append("Информация по заказу:")
+                message_lines.append("━━━━━━━━━━━━━━━━━━━━")
+                message_lines.append("")
+                message_lines.append("ℹ️ <b>Информация по заказу:</b>")
+                message_lines.append("")
                 message_lines.append(order_info)
             
             message_text = "\n".join(message_lines)
@@ -311,14 +314,17 @@ class SupportTopicsService:
             
             # Формируем сообщение
             message_lines = [
-                f"✅ Новый заказ создан",
+                f"🆕 <b>Новый заказ создан</b>",
                 f"",
-                f"Заказ: #{order_id}",
+                f"📦 <b>Заказ:</b> #{order_id}",
             ]
             
             if order_info:
                 message_lines.append("")
-                message_lines.append("Информация по заказу:")
+                message_lines.append("━━━━━━━━━━━━━━━━━━━━")
+                message_lines.append("")
+                message_lines.append("ℹ️ <b>Информация по заказу:</b>")
+                message_lines.append("")
                 message_lines.append(order_info)
             
             message_text = "\n".join(message_lines)

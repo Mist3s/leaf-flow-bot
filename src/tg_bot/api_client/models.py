@@ -69,6 +69,8 @@ class OrderItem(BaseModel):
     quantity: int
     price: Decimal
     total: Decimal
+    productName: Optional[str] = None  # Название упаковки
+    variantWeight: Optional[str] = None  # Название варианта (вес)
 
 
 class OrderDetails(BaseModel):
