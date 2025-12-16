@@ -53,5 +53,24 @@ class BaseApiClient:
             logger.error(f"Неожиданная ошибка при POST {url}: {e}")
             raise
 
+    async def _patch(self, path: str, json: dict[str, Any] | None = None) -> httpx.Response:
+        url = f"{self.base_url}{path}"
+        headers = {"Authorization": f"Bearer {self.token}"}
+        logger.debug(f"PATCH запрос: {url}, json={json}")
+        try:
+            response = await self._client.patch(path, json=json, headers=headers)
+            logger.debug(f"Ответ PATCH {url}: status={response.status_code}")
+            if response.status_code >= 400:
+                logger.error(f"Ошибка PATCH {url}: status={response.status_code}, body={response.text[:200]}")
+                raise ApiClientError(response)
+            logger.debug(f"Успешный PATCH {url}: body={response.text[:200]}")
+            return response
+        except httpx.RequestError as e:
+            logger.error(f"Ошибка сети при PATCH {url}: {e}")
+            raise
+        except Exception as e:
+            logger.error(f"Неожиданная ошибка при PATCH {url}: {e}")
+            raise
+
     async def close(self) -> None:
         await self._client.aclose()

@@ -125,3 +125,26 @@ async def order_details(callback: CallbackQuery, orders_api: OrdersApi, order_bu
     details = await orders_api.get_order(order_id)
     await callback.message.answer(order_builder.order_details(details))
     await callback.answer()
+
+
+@router.callback_query(lambda c: c.data and c.data.startswith("admin:order:"))
+async def admin_order_details(
+    callback: CallbackQuery, 
+    orders_api: OrdersApi, 
+    order_builder: OrdersTextBuilder,
+    settings: Settings,
+):
+    """Обработчик кнопки 'Подробнее' для администратора в админском чате"""
+    # Проверяем, что это админский чат
+    if callback.message and callback.message.chat.id != settings.admin_chat_id:
+        await callback.answer("❌ Эта команда доступна только администраторам")
+        return
+    
+    order_id = callback.data.split(":", maxsplit=2)[-1]
+    details = await orders_api.get_order(order_id)
+    
+    if details:
+        await callback.message.answer(order_builder.order_details(details))
+        await callback.answer("✅ Детали заказа")
+    else:
+        await callback.answer("❌ Заказ не найден")

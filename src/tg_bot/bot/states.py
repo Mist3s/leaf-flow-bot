@@ -9,3 +9,8 @@ class SupportStates(StatesGroup):
 
 class OrderChatStates(StatesGroup):
     waiting_message = State()
+
+
+class AdminOrderStatusStates(StatesGroup):
+    waiting_status = State()
+    waiting_comment = State()

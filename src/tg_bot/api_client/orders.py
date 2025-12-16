@@ -20,3 +20,33 @@ class OrdersApi(BaseApiClient):
         except Exception:  # noqa: BLE001
             return None
         return OrderDetails.model_validate(response.json())
+
+    async def update_order_status(
+        self, 
+        order_id: str, 
+        new_status: str, 
+        comment: str | None = None
+    ) -> Optional[OrderDetails]:
+        """
+        Обновить статус заказа.
+        
+        Args:
+            order_id: ID заказа
+            new_status: Новый статус заказа
+            comment: Опциональный комментарий
+            
+        Returns:
+            OrderDetails: Обновленные детали заказа или None при ошибке
+        """
+        try:
+            payload = {"newStatus": new_status}
+            if comment:
+                payload["comment"] = comment
+            
+            response = await self._patch(
+                f"/api/v1/internal/orders/{order_id}/status",
+                json=payload,
+            )
+            return OrderDetails.model_validate(response.json())
+        except Exception:  # noqa: BLE001
+            return None

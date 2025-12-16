@@ -7,7 +7,7 @@ from aiogram.enums import ChatType
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
 
-from tg_bot.bot.states import SupportStates, OrderChatStates
+from tg_bot.bot.states import SupportStates, OrderChatStates, AdminOrderStatusStates
 from tg_bot.config import Settings
 from tg_bot.services.support_topics_service import SupportTopicsService
 
@@ -79,6 +79,7 @@ async def forward_user_message_to_topic(
 @router.message()
 async def forward_admin_message_to_user(
     message: Message,
+    state: FSMContext,
     support_topics_service: SupportTopicsService,
     settings: Settings,
 ):
@@ -89,6 +90,12 @@ async def forward_admin_message_to_user(
         return
     
     if not message.message_thread_id:
+        return
+    
+    # Игнорируем сообщения в FSM состояниях изменения статуса
+    current_state = await state.get_state()
+    if current_state in (AdminOrderStatusStates.waiting_status, AdminOrderStatusStates.waiting_comment):
+        logger.debug(f"Игнорируем сообщение администратора в FSM состоянии: {current_state}")
         return
     
     logger.debug(

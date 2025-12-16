@@ -11,6 +11,7 @@ from tg_bot.api_client.orders import OrdersApi
 from tg_bot.api_client.models import OrderSummary
 from tg_bot.config import Settings
 from tg_bot.services.order_service import OrdersTextBuilder
+from tg_bot.bot.keyboards.inline import admin_order_details_button
 
 logger = logging.getLogger(__name__)
 
@@ -255,11 +256,12 @@ class SupportTopicsService:
             
             message_text = "\n".join(message_lines)
             
-            # Отправляем сообщение администратору в топик
+            # Отправляем сообщение администратору в топик с кнопкой "Подробнее"
             await self.bot.send_message(
                 chat_id=self.settings.admin_chat_id,
                 message_thread_id=thread_id,
                 text=message_text,
+                reply_markup=admin_order_details_button(order_id),
             )
             logger.info(
                 f"Отправлено уведомление администратору о чате по заказу {order_id} "
@@ -329,11 +331,12 @@ class SupportTopicsService:
             
             message_text = "\n".join(message_lines)
             
-            # Отправляем сообщение администратору в топик
+            # Отправляем сообщение администратору в топик с кнопкой "Подробнее"
             await self.bot.send_message(
                 chat_id=self.settings.admin_chat_id,
                 message_thread_id=thread_id,
                 text=message_text,
+                reply_markup=admin_order_details_button(order_id),
             )
             logger.info(
                 f"Отправлено уведомление администратору о новом заказе {order_id} "
