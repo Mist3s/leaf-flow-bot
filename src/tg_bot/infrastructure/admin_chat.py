@@ -150,3 +150,89 @@ def _build_header(*, telegram_id: int, username: str | None, user_fullname: str,
     header_lines.append(f"👤 <b>Пользователь:</b> {user_fullname}")
     header_lines.append(f"   {username_part} | ID: {telegram_id}")
     return "\n".join(header_lines)
+
+
+async def notify_website_order(
+    *,
+    bot: Bot,
+    settings: Settings,
+    payload: dict[str, Any],
+) -> None:
+    """
+    Уведомить администратора о новом заказе с сайта (пользователь без Telegram).
+    Уведомление отправляется в General топик админского чата.
+    
+    Args:
+        bot: Aiogram Bot
+        settings: Настройки приложения  
+        payload: Данные заказа с полями orderId, email, phone, customerName и др.
+    """
+    from tg_bot.bot.keyboards.inline import admin_order_details_button
+    
+    logger = logging.getLogger(__name__)
+    
+    order_id = payload.get("orderId")
+    email = payload.get("email")
+    phone = payload.get("phone")
+    customer_name = payload.get("customerName")
+    total = payload.get("total")
+    delivery_method = payload.get("deliveryMethod")
+    comment = payload.get("comment")
+    
+    if not order_id:
+        logger.warning("notify_website_order: отсутствует orderId в payload")
+        return
+    
+    # Формируем сообщение
+    lines = [
+        f"🌐 <b>Новый заказ с сайта</b>",
+        f"",
+        f"📦 <b>Заказ:</b> #{order_id}",
+    ]
+    
+    if customer_name:
+        lines.append(f"👤 <b>Клиент:</b> {customer_name}")
+    
+    if email:
+        lines.append(f"📧 <b>Email:</b> {email}")
+    
+    if phone:
+        lines.append(f"📱 <b>Телефон:</b> {phone}")
+    
+    if total:
+        lines.append(f"💰 <b>Сумма:</b> {total} ₽")
+    
+    if delivery_method:
+        delivery_text = _human_delivery(delivery_method)
+        lines.append(f"🚚 <b>Доставка:</b> {delivery_text}")
+    
+    if comment:
+        lines.append(f"")
+        lines.append(f"💬 <b>Комментарий:</b>")
+        lines.append(f"{comment}")
+    
+    lines.append("")
+    lines.append("⚠️ <i>У клиента нет Telegram — свяжитесь по email/телефону</i>")
+    
+    message_text = "\n".join(lines)
+    
+    try:
+        # Отправляем в General топик (message_thread_id не указываем или указываем None)
+        await bot.send_message(
+            chat_id=settings.admin_chat_id,
+            text=message_text,
+            reply_markup=admin_order_details_button(order_id),
+        )
+        logger.info(f"Отправлено уведомление о заказе с сайта #{order_id} в General топик")
+    except Exception as e:
+        logger.error(f"Ошибка при отправке уведомления о заказе с сайта #{order_id}: {e}", exc_info=True)
+
+
+def _human_delivery(delivery_method: str | None) -> str:
+    """Возвращает человекочитаемый текст для способа доставки"""
+    mapping = {
+        "courier": "Курьер",
+        "pickup": "Самовывоз",
+        "cdek": "СДЭК",
+    }
+    return mapping.get(delivery_method or "", delivery_method or "Не указан")

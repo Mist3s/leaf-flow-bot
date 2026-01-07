@@ -3,7 +3,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, Header, Request
 from aiogram import Bot
 
-from tg_bot.infrastructure.admin_chat import notify_order_status_update
+from tg_bot.infrastructure.admin_chat import notify_order_status_update, notify_website_order
 from tg_bot.infrastructure.security import verify_internal_token
 from tg_bot.services.support_topics_service import SupportTopicsService
 from tg_bot.api_client.users import UsersApi
@@ -41,5 +41,36 @@ async def order_status_changed(
         payload=payload,
         support_topics_service=support_topics_service,
         users_api=users_api,
+    )
+    return {"status": "delivered"}
+
+
+@router.post("/website-order-created")
+async def website_order_created(
+    payload: dict,
+    request: Request,
+    authorization: str | None = Header(default=None, convert_underscores=False),
+    bot: Bot = Depends(_get_bot),
+):
+    """
+    Эндпоинт для уведомлений о заказах с сайта.
+    
+    Заказы от пользователей без Telegram ID (только email/телефон).
+    Уведомление отправляется в General топик админского чата.
+    
+    Ожидаемые поля в payload:
+    - orderId: str (обязательно)
+    - email: str (опционально)
+    - phone: str (опционально)
+    - customerName: str (опционально)
+    - total: str (опционально)
+    - deliveryMethod: str (опционально)
+    - comment: str (опционально)
+    """
+    verify_internal_token(authorization=authorization, expected_token=request.app.state.settings.internal_leafflow_token)
+    await notify_website_order(
+        bot=bot,
+        settings=request.app.state.settings,
+        payload=payload,
     )
     return {"status": "delivered"}

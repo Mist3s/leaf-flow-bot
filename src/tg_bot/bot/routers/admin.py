@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 
 from aiogram import F, Router
+from aiogram.exceptions import TelegramBadRequest
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 
@@ -13,6 +14,15 @@ from tg_bot.config import Settings
 from tg_bot.services.order_service import OrdersTextBuilder
 
 logger = logging.getLogger(__name__)
+
+
+async def _safe_callback_answer(callback: CallbackQuery, text: str | None = None) -> None:
+    """Безопасный ответ на callback query с обработкой устаревших запросов"""
+    try:
+        await callback.answer(text)
+    except TelegramBadRequest:
+        # Callback query устарел или уже был обработан - игнорируем
+        pass
 
 router = Router()
 
@@ -76,13 +86,16 @@ async def admin_status_confirm_no_comment(
     """Подтверждение изменения статуса без комментария"""
     # Проверяем, что это админский чат
     if callback.message and callback.message.chat.id != settings.admin_chat_id:
-        await callback.answer("❌ Эта команда доступна только администраторам")
+        await _safe_callback_answer(callback, "❌ Эта команда доступна только администраторам")
         return
     
     data_parts = callback.data.split(":")
     if len(data_parts) < 5:
-        await callback.answer("❌ Ошибка: неверный формат данных")
+        await _safe_callback_answer(callback, "❌ Ошибка: неверный формат данных")
         return
+    
+    # Сразу отвечаем на callback, чтобы не было таймаута
+    await _safe_callback_answer(callback)
     
     order_id = data_parts[3]
     new_status = data_parts[4]
@@ -95,7 +108,6 @@ async def admin_status_confirm_no_comment(
         new_status,
         comment=None,
     )
-    await callback.answer("✅ Статус обновлён")
     await state.clear()
 
 
@@ -108,12 +120,12 @@ async def admin_change_status_start(
     """Начало процесса изменения статуса заказа администратором"""
     # Проверяем, что это админский чат
     if callback.message and callback.message.chat.id != settings.admin_chat_id:
-        await callback.answer("❌ Эта команда доступна только администраторам")
+        await _safe_callback_answer(callback, "❌ Эта команда доступна только администраторам")
         return
     
     data_parts = callback.data.split(":")
     if len(data_parts) < 3:
-        await callback.answer("❌ Ошибка: неверный формат данных")
+        await _safe_callback_answer(callback, "❌ Ошибка: неверный формат данных")
         return
     
     action = data_parts[2]
@@ -122,13 +134,13 @@ async def admin_change_status_start(
         # Отмена изменения статуса
         order_id = data_parts[-1]
         await state.clear()
-        await callback.answer("❌ Изменение статуса отменено")
+        await _safe_callback_answer(callback, "❌ Изменение статуса отменено")
         return
     
     if action == "select":
         # Выбор статуса
         if len(data_parts) < 5:
-            await callback.answer("❌ Ошибка: неверный формат данных")
+            await _safe_callback_answer(callback, "❌ Ошибка: неверный формат данных")
             return
         
         order_id = data_parts[3]
@@ -144,7 +156,7 @@ async def admin_change_status_start(
             "Введите комментарий или нажмите кнопку ниже, чтобы пропустить:",
             reply_markup=admin_status_comment_keyboard(order_id, new_status)
         )
-        await callback.answer()
+        await _safe_callback_answer(callback)
         return
     
     # Начало процесса - показываем клавиатуру выбора статуса
@@ -157,7 +169,7 @@ async def admin_change_status_start(
         "Выберите новый статус заказа:",
         reply_markup=admin_order_status_keyboard(order_id)
     )
-    await callback.answer()
+    await _safe_callback_answer(callback)
 
 
 @router.message(AdminOrderStatusStates.waiting_comment)

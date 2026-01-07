@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from aiogram import F, Router
+from aiogram.exceptions import TelegramBadRequest
 from aiogram.filters import Command
 from aiogram.types import CallbackQuery, Message
 
@@ -9,6 +10,15 @@ from tg_bot.api_client.users import UsersApi
 from tg_bot.bot.keyboards.inline import order_actions, open_webapp_button, orders_pagination_keyboard
 from tg_bot.config import Settings
 from tg_bot.services.order_service import OrdersTextBuilder
+
+
+async def _safe_callback_answer(callback: CallbackQuery, text: str | None = None) -> None:
+    """Безопасный ответ на callback query с обработкой устаревших запросов"""
+    try:
+        await callback.answer(text)
+    except TelegramBadRequest:
+        # Callback query устарел или уже был обработан - игнорируем
+        pass
 
 router = Router()
 
@@ -36,7 +46,7 @@ async def _send_orders_page(
             )
         if isinstance(message_or_callback, CallbackQuery):
             await message_or_callback.message.answer(text)
-            await message_or_callback.answer()
+            await _safe_callback_answer(message_or_callback)
         else:
             await message_or_callback.answer(text)
         return
@@ -63,7 +73,7 @@ async def _send_orders_page(
                 pagination_text,
                 reply_markup=orders_pagination_keyboard(next_offset)
             )
-            await message_or_callback.answer()
+            await _safe_callback_answer(message_or_callback)
         else:
             await message_or_callback.answer(
                 pagination_text,
@@ -90,7 +100,7 @@ async def list_orders(message: Message, settings: Settings, users_api: UsersApi,
 async def orders_pagination(callback: CallbackQuery, users_api: UsersApi, orders_api: OrdersApi, order_builder: OrdersTextBuilder):
     """Обработчик пагинации списка заказов"""
     if not callback.from_user:
-        await callback.answer("❌ Ошибка: не удалось определить пользователя")
+        await _safe_callback_answer(callback, "❌ Ошибка: не удалось определить пользователя")
         return
     
     # Удаляем сообщение с кнопкой "Показать еще"
@@ -101,7 +111,7 @@ async def orders_pagination(callback: CallbackQuery, users_api: UsersApi, orders
             # Если не удалось удалить (например, сообщение уже удалено), продолжаем
             pass
     
-    await callback.answer()
+    await _safe_callback_answer(callback)
     
     user_profile = await users_api.get_by_telegram(callback.from_user.id)
     if not user_profile:
@@ -121,10 +131,12 @@ async def orders_pagination(callback: CallbackQuery, users_api: UsersApi, orders
 
 @router.callback_query(lambda c: c.data and c.data.startswith("order:"))
 async def order_details(callback: CallbackQuery, orders_api: OrdersApi, order_builder: OrdersTextBuilder):
+    # Сразу отвечаем на callback, чтобы не было таймаута
+    await _safe_callback_answer(callback)
+    
     order_id = callback.data.split(":", maxsplit=1)[1]
     details = await orders_api.get_order(order_id)
     await callback.message.answer(order_builder.order_details(details))
-    await callback.answer()
 
 
 @router.callback_query(lambda c: c.data and c.data.startswith("admin:order:"))
@@ -137,14 +149,16 @@ async def admin_order_details(
     """Обработчик кнопки 'Подробнее' для администратора в админском чате"""
     # Проверяем, что это админский чат
     if callback.message and callback.message.chat.id != settings.admin_chat_id:
-        await callback.answer("❌ Эта команда доступна только администраторам")
+        await _safe_callback_answer(callback, "❌ Эта команда доступна только администраторам")
         return
+    
+    # Сразу отвечаем на callback, чтобы не было таймаута
+    await _safe_callback_answer(callback)
     
     order_id = callback.data.split(":", maxsplit=2)[-1]
     details = await orders_api.get_order(order_id)
     
     if details:
         await callback.message.answer(order_builder.order_details(details))
-        await callback.answer("✅ Детали заказа")
     else:
-        await callback.answer("❌ Заказ не найден")
+        await callback.message.answer("❌ Заказ не найден")

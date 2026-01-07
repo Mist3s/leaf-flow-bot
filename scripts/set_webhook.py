@@ -10,6 +10,7 @@ from tg_bot.config import load_settings
 async def main() -> None:
     settings = load_settings()
     async with httpx.AsyncClient() as client:
+        print(settings.bot_token)
         resp = await client.post(
             f"https://api.telegram.org/bot{settings.bot_token}/setWebhook",
             json={"url": settings.webhook_url},
