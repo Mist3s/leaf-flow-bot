@@ -3,10 +3,12 @@ from __future__ import annotations
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
+from aiohttp import ClientTimeout
 
 from tg_bot.bot.routers import start, orders, support, chat, misc, support_topics, admin
 from tg_bot.bot.middlewares.logging import LoggingMiddleware
 from tg_bot.bot.middlewares.user_context import UserContextMiddleware
+from tg_bot.bot.middlewares.retry_session import RetryAiohttpSession
 from tg_bot.config import Settings
 from tg_bot.api_client.users import UsersApi
 from tg_bot.api_client.orders import OrdersApi
@@ -17,7 +19,21 @@ from tg_bot.services.support_topics_service import SupportTopicsService
 
 
 def create_bot_and_dispatcher(settings: Settings) -> tuple[Bot, Dispatcher]:
-    bot = Bot(token=settings.bot_token, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
+    # Настраиваем сессию с retry логикой для Telegram API:
+    # - timeout: таймауты на запросы (10 сек на чтение — достаточно для Telegram)
+    # - max_retries: количество повторных попыток при сетевых ошибках
+    # - base_delay: начальная задержка между попытками (экспоненциально растёт)
+    session = RetryAiohttpSession(
+        timeout=ClientTimeout(total=15.0, connect=5.0, sock_read=10.0),
+        max_retries=3,
+        base_delay=1.0,
+        max_delay=5.0,
+    )
+    bot = Bot(
+        token=settings.bot_token,
+        default=DefaultBotProperties(parse_mode=ParseMode.HTML),
+        session=session,
+    )
     dispatcher = Dispatcher()
 
     users_api = UsersApi(base_url=str(settings.api_base_url), token=settings.internal_bot_token)

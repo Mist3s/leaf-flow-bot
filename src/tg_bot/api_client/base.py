@@ -11,10 +11,21 @@ logger = logging.getLogger(__name__)
 
 
 class BaseApiClient:
-    def __init__(self, *, base_url: str, token: str):
+    # Таймауты для API запросов (в секундах)
+    DEFAULT_TIMEOUT = httpx.Timeout(
+        connect=5.0,    # Время на установку соединения
+        read=10.0,      # Время на чтение ответа
+        write=10.0,     # Время на запись запроса
+        pool=5.0,       # Время ожидания в пуле соединений
+    )
+
+    def __init__(self, *, base_url: str, token: str, timeout: httpx.Timeout | None = None):
         self.base_url = base_url.rstrip("/")
         self.token = token
-        self._client = httpx.AsyncClient(base_url=self.base_url)
+        self._client = httpx.AsyncClient(
+            base_url=self.base_url,
+            timeout=timeout or self.DEFAULT_TIMEOUT,
+        )
 
     async def _get(self, path: str, params: dict[str, Any] | None = None) -> httpx.Response:
         url = f"{self.base_url}{path}"
