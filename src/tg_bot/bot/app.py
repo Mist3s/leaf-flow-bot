@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
@@ -24,7 +22,7 @@ def create_bot_and_dispatcher(settings: Settings) -> tuple[Bot, Dispatcher]:
     # - max_retries: количество повторных попыток при сетевых ошибках
     # - base_delay: начальная задержка между попытками (экспоненциально растёт)
     session = RetryAiohttpSession(
-        timeout=ClientTimeout(total=15.0, connect=5.0, sock_read=10.0),
+        timeout=ClientTimeout(total=15.0, connect=5.0, sock_read=30.0),
         max_retries=3,
         base_delay=1.0,
         max_delay=5.0,

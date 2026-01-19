@@ -1,6 +1,6 @@
 import logging
 
-from aiogram import F, Router
+from aiogram import Router
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
@@ -9,7 +9,6 @@ from tg_bot.api_client.orders import OrdersApi
 from tg_bot.bot.keyboards.inline import admin_order_status_keyboard, admin_status_comment_keyboard
 from tg_bot.bot.states import AdminOrderStatusStates
 from tg_bot.config import Settings
-from tg_bot.services.order_service import OrdersTextBuilder
 
 logger = logging.getLogger(__name__)
 
