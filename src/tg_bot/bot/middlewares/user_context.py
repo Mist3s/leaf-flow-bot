@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from aiogram import BaseMiddleware
 from aiogram.types import Message
 

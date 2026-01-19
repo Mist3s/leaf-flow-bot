@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from tg_bot.api_client.models import UserProfile
 from tg_bot.services.order_service import OrdersTextBuilder
 

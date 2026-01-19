@@ -12,7 +12,7 @@ router = Router()
 @router.message(F.text == "👨‍💻 Поддержка")
 async def support_entry(message: Message):
     tg_bot_dir = Path(__file__).resolve().parents[2]
-    img_path = tg_bot_dir / "data" / "img" / "support_6x4.png"
+    img_path = tg_bot_dir / "data" / "img" / "support_6x4.jpg"
     await message.answer_photo(
         photo=FSInputFile(img_path),
         caption=(

@@ -1,6 +1,3 @@
-"""Retry middleware для aiogram сессии с экспоненциальной задержкой."""
-from __future__ import annotations
-
 import asyncio
 import logging
 
@@ -64,4 +61,3 @@ class RetryAiohttpSession(AiohttpSession):
 
         # Если все попытки исчерпаны
         raise last_error  # type: ignore[misc]
-

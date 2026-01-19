@@ -5,7 +5,7 @@ from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 from aiohttp import ClientTimeout
 
-from tg_bot.bot.routers import start, orders, support, chat, misc, support_topics, admin
+from tg_bot.bot.routers import start, orders, support, chat, support_topics, admin
 from tg_bot.bot.middlewares.logging import LoggingMiddleware
 from tg_bot.bot.middlewares.user_context import UserContextMiddleware
 from tg_bot.bot.middlewares.retry_session import RetryAiohttpSession
@@ -64,7 +64,6 @@ def create_bot_and_dispatcher(settings: Settings) -> tuple[Bot, Dispatcher]:
     dispatcher.include_router(orders.router)
     dispatcher.include_router(support.router)
     dispatcher.include_router(chat.router)
-    dispatcher.include_router(misc.router)
     dispatcher.include_router(admin.router)
     # Подключаем support_topics последним, чтобы он был catch-all для личных сообщений
     dispatcher.include_router(support_topics.router)

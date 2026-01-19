@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
 
 
@@ -44,8 +42,8 @@ def admin_order_status_keyboard(order_id: str) -> InlineKeyboardMarkup:
                 InlineKeyboardButton(text="⏳ В обработке", callback_data=f"admin:status:select:{order_id}:processing")
             ],
             [
-                InlineKeyboardButton(text="✅ Оплачен", callback_data=f"admin:status:select:{order_id}:paid"),
-                InlineKeyboardButton(text="🎉 Выполнен", callback_data=f"admin:status:select:{order_id}:fulfilled")
+                InlineKeyboardButton(text="💰 Оплачен", callback_data=f"admin:status:select:{order_id}:paid"),
+                InlineKeyboardButton(text="✅ Выполнен", callback_data=f"admin:status:select:{order_id}:fulfilled")
             ],
             [
                 InlineKeyboardButton(text="❌ Отменён", callback_data=f"admin:status:select:{order_id}:cancelled")

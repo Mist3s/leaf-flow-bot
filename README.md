@@ -22,7 +22,6 @@
 
 ## HTTP эндпоинты
 - `POST /telegram/webhook` — вебхук Telegram (проверяет `secret_token`).
-- `POST /internal/order-status-changed` — уведомление о статусе заказа (требует Bearer `INTERNAL_LEAFFLOW_TOKEN`).
 - `GET /health` — проверка доступности.
 
 ## Основные сценарии

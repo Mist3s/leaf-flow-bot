@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from aiogram import F, Router
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.filters import Command

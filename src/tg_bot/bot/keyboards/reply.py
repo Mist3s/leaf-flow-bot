@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from aiogram.types import KeyboardButton, ReplyKeyboardMarkup, WebAppInfo, InlineKeyboardButton, InlineKeyboardMarkup
 
 

@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from tg_bot.api_client.models import OrderDetails, OrderListResponse, OrderSummary
 
 

@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import logging
 from typing import Any
 
@@ -14,7 +12,7 @@ class BaseApiClient:
     # Таймауты для API запросов (в секундах)
     DEFAULT_TIMEOUT = httpx.Timeout(
         connect=5.0,    # Время на установку соединения
-        read=10.0,      # Время на чтение ответа
+        read=20.0,      # Время на чтение ответа
         write=10.0,     # Время на запись запроса
         pool=5.0,       # Время ожидания в пуле соединений
     )

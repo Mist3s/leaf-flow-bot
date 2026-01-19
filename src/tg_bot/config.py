@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from functools import lru_cache
 
 from pydantic import HttpUrl, computed_field
@@ -13,7 +11,6 @@ class Settings(BaseSettings):
     admin_chat_id: int
     api_base_url: HttpUrl
     internal_bot_token: str
-    internal_leafflow_token: str
     webapp_url: HttpUrl
     webhook_secret: str
     webhook_base_url: HttpUrl = "http://localhost:8000"

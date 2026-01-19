@@ -1,6 +1,3 @@
-"""Entry point to run FastAPI application with aiogram."""
-from __future__ import annotations
-
 import asyncio
 import signal
 from typing import Any

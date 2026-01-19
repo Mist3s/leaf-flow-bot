@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import logging
 from typing import Any, Optional
 
@@ -120,8 +118,7 @@ def _human_status(status: str | None) -> str:
         "processing": "В обработке",
         "paid": "Оплачен",
         "fulfilled": "Выполнен",
-        "cancelled": "Отменён",
-        "shipped": "Отправлен",
+        "cancelled": "Отменён"
     }
     return mapping.get(status or "", status or "Неизвестно")
 
@@ -131,10 +128,9 @@ def _status_emoji_emoji(status: str | None) -> str:
     mapping = {
         "created": "🆕",
         "processing": "⏳",
-        "paid": "✅",
-        "fulfilled": "🎉",
-        "cancelled": "❌",
-        "shipped": "🚚",
+        "paid": "💰",
+        "fulfilled": "✅",
+        "cancelled": "❌"
     }
     return mapping.get(status or "", "📋")
 
