@@ -45,29 +45,14 @@ async def _update_order_status(
 ) -> None:
     """Вспомогательная функция для обновления статуса заказа"""
     try:
-        updated_order = await orders_api.update_order_status(
+        await orders_api.update_order_status(
             order_id=order_id,
             new_status=new_status,
             comment=comment,
         )
         
-        if updated_order:
-            status_name = STATUS_NAMES.get(new_status, new_status)
-            success_text = (
-                f"✅ <b>Статус заказа обновлён</b>\n\n"
-                f"📦 Заказ: #{order_id}\n"
-                f"{status_name}"
-            )
-            if comment:
-                success_text += f"\n\n💬 <b>Комментарий:</b>\n{comment}"
-            
-            await message.answer(success_text)
-            logger.info(f"Администратор {message.from_user.id if message.from_user else None} изменил статус заказа {order_id} на {new_status}")
-        else:
-            await message.answer(
-                "❌ <b>Ошибка</b>\n\n"
-                "Не удалось обновить статус заказа. Попробуйте позже."
-            )
+        logger.info(f"Администратор {message.from_user.id if message.from_user else None} изменил статус заказа {order_id} на {new_status}")
+
     except Exception as e:
         logger.error(f"Ошибка при обновлении статуса заказа {order_id}: {e}", exc_info=True)
         await message.answer(
