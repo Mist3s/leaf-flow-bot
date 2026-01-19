@@ -1,0 +1,20 @@
+--------------------STAGE---------------------
+
+# Сборка образа для staging
+docker build -t mist3s/leaf-flow-bot:stage -f Dockerfile .
+
+# Пуш образа в Docker Hub
+docker push mist3s/leaf-flow-bot:stage
+
+----------------------------------------------
+
+
+--------------------PROD---------------------
+
+# Сборка образа для staging
+docker build -t mist3s/leaf-flow-bot:prod -f Dockerfile .
+
+# Пуш образа в Docker Hub
+docker push mist3s/leaf-flow-bot:prod
+
+----------------------------------------------
