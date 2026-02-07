@@ -7,10 +7,10 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", env_prefix="")
 
-    bot_token: str
+    telegram_bot_token: str
     admin_chat_id: int
     api_base_url: HttpUrl
-    internal_bot_token: str
+    internal_token: str
     webapp_url: HttpUrl
     webhook_secret: str
     webhook_base_url: HttpUrl = "http://localhost:8000"

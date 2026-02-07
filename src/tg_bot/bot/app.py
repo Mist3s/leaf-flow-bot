@@ -28,7 +28,7 @@ def create_bot_and_dispatcher(settings: Settings) -> tuple[Bot, Dispatcher]:
         max_delay=5.0,
     )
     bot = Bot(
-        token=settings.bot_token,
+        token=settings.telegram_bot_token,
         default=DefaultBotProperties(parse_mode=ParseMode.HTML),
         session=session,
     )
