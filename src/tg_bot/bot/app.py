@@ -34,9 +34,9 @@ def create_bot_and_dispatcher(settings: Settings) -> tuple[Bot, Dispatcher]:
     )
     dispatcher = Dispatcher()
 
-    users_api = UsersApi(base_url=str(settings.api_base_url), token=settings.internal_bot_token)
-    orders_api = OrdersApi(base_url=str(settings.api_base_url), token=settings.internal_bot_token)
-    support_topics_api = SupportTopicsApi(base_url=str(settings.api_base_url), token=settings.internal_bot_token)
+    users_api = UsersApi(base_url=str(settings.api_base_url), token=settings.internal_token)
+    orders_api = OrdersApi(base_url=str(settings.api_base_url), token=settings.internal_token)
+    support_topics_api = SupportTopicsApi(base_url=str(settings.api_base_url), token=settings.internal_token)
     order_builder = OrdersTextBuilder(webapp_url=str(settings.webapp_url))
     user_service = UserService(order_builder=order_builder, webapp_url=str(settings.webapp_url))
     support_topics_service = SupportTopicsService(
