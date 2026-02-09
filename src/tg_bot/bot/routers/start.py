@@ -6,6 +6,7 @@ from aiogram.types import Message
 
 from tg_bot.bot.keyboards.reply import main_menu_with_inline_webapp
 from tg_bot.services.user_service import UserService
+from tg_bot.services.support_topics_service import SupportTopicsService
 from tg_bot.api_client.orders import OrdersApi
 from tg_bot.api_client.users import UsersApi
 from tg_bot.api_client.models import RegisterUserRequest
@@ -17,7 +18,7 @@ router = Router()
 
 
 @router.message(CommandStart())
-async def start_command(message: Message, settings: Settings, users_api: UsersApi, orders_api: OrdersApi, user_service: UserService):
+async def start_command(message: Message, settings: Settings, users_api: UsersApi, orders_api: OrdersApi, user_service: UserService, support_topics_service: SupportTopicsService):
     if not message.from_user:
         await message.answer("❌ <b>Ошибка</b>\n\nНе удалось определить пользователя")
         return
@@ -51,6 +52,18 @@ async def start_command(message: Message, settings: Settings, users_api: UsersAp
             # Регистрируем пользователя
             user_profile = await users_api.register(register_request)
             logger.info(f"Пользователь {message.from_user.id} успешно зарегистрирован")
+
+            # Создаём топик поддержки для нового пользователя
+            try:
+                await support_topics_service.get_or_create_thread(
+                    user_telegram_id=message.from_user.id,
+                    user_fullname=message.from_user.full_name,
+                )
+            except Exception as topic_err:
+                logger.warning(
+                    f"Не удалось создать топик поддержки при регистрации "
+                    f"пользователя {message.from_user.id}: {topic_err}"
+                )
         except Exception as e:
             logger.error(f"Ошибка при регистрации пользователя {message.from_user.id}: {e}", exc_info=True)
             # Продолжаем работу даже если регистрация не удалась

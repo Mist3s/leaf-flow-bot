@@ -1,7 +1,7 @@
 import logging
 
 from aiogram import F, Router
-from aiogram.enums import ChatType
+from aiogram.enums import ChatType, ContentType
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
 
@@ -37,7 +37,41 @@ def is_menu_text(text: str | None) -> bool:
 
 
 @router.message(
+    F.chat.type == ChatType.PRIVATE,
+    F.content_type == ContentType.WRITE_ACCESS_ALLOWED,
+)
+async def on_write_access_allowed(
+    message: Message,
+    support_topics_service: SupportTopicsService,
+):
+    """
+    Хендлер для события write_access_allowed (авторизация через Telegram Login Widget).
+    
+    Создаём топик поддержки для пользователя, но не пересылаем служебное сообщение админу.
+    """
+    if not message.from_user:
+        return
+
+    logger.info(
+        f"Получено write_access_allowed от пользователя {message.from_user.id} "
+        f"({message.from_user.full_name})"
+    )
+
+    try:
+        await support_topics_service.get_or_create_thread(
+            user_telegram_id=message.from_user.id,
+            user_fullname=message.from_user.full_name,
+        )
+    except Exception as e:
+        logger.warning(
+            f"Не удалось создать топик поддержки при write_access_allowed "
+            f"для пользователя {message.from_user.id}: {e}"
+        )
+
+
+@router.message(
     F.chat.type == ChatType.PRIVATE,  # Только личные сообщения
+    F.content_type != ContentType.WRITE_ACCESS_ALLOWED,  # Исключаем служебные сообщения
 )
 async def forward_user_message_to_topic(
     message: Message,
