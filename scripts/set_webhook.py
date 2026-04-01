@@ -1,4 +1,5 @@
 import asyncio
+import os
 
 import httpx
 
@@ -7,7 +8,8 @@ from tg_bot.config import load_settings
 
 async def main() -> None:
     settings = load_settings()
-    async with httpx.AsyncClient() as client:
+    proxy = os.environ.get("HTTPS_PROXY", os.environ.get("https_proxy"))
+    async with httpx.AsyncClient(proxy=proxy) as client:
         print(settings.telegram_bot_token)
         resp = await client.post(
             f"https://api.telegram.org/bot{settings.telegram_bot_token}/setWebhook",

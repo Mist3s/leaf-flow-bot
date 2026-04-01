@@ -15,6 +15,9 @@ class Settings(BaseSettings):
     webhook_secret: str
     webhook_base_url: HttpUrl = "http://localhost:8000"
 
+    proxy_url: str | None = None
+    use_polling: bool = False
+
     host: str = "0.0.0.0"
     port: int = 8000
     log_level: str = "INFO"

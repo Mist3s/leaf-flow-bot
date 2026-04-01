@@ -6,7 +6,6 @@ from aiogram.client.session.aiohttp import AiohttpSession
 from aiogram.exceptions import TelegramNetworkError
 from aiogram.methods import TelegramMethod
 from aiogram.methods.base import TelegramType
-from aiohttp import ClientTimeout
 
 logger = logging.getLogger(__name__)
 
@@ -21,12 +20,13 @@ class RetryAiohttpSession(AiohttpSession):
     def __init__(
         self,
         *,
-        timeout: ClientTimeout | None = None,
+        timeout: float = 30.0,
+        proxy: str | None = None,
         max_retries: int = 3,
         base_delay: float = 1.0,
         max_delay: float = 10.0,
     ):
-        super().__init__(timeout=timeout)
+        super().__init__(proxy=proxy, timeout=timeout)
         self.max_retries = max_retries
         self.base_delay = base_delay
         self.max_delay = max_delay

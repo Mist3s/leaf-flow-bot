@@ -1,20 +1,37 @@
 import asyncio
+import logging
 import signal
 from typing import Any
 
 import uvicorn
+from aiogram import Bot, Dispatcher
 
 from tg_bot.bot.app import create_bot_and_dispatcher
-from tg_bot.config import load_settings
+from tg_bot.config import Settings, load_settings
 from tg_bot.http_app.app import create_app
 from tg_bot.logging import configure_logging
 
+logger = logging.getLogger(__name__)
 
-async def _run() -> None:
-    settings = load_settings()
-    configure_logging(level=settings.log_level)
 
-    bot, dispatcher = create_bot_and_dispatcher(settings)
+async def _run_polling(bot: Bot, dispatcher: Dispatcher) -> None:
+    """Запуск бота в polling-режиме (через прокси, если настроена)."""
+    logger.info("Запуск бота в polling-режиме")
+    try:
+        # Удаляем webhook, чтобы Telegram отдавал обновления через getUpdates
+        await bot.delete_webhook(drop_pending_updates=True)
+        logger.info("Webhook удалён, запускаем polling")
+
+        await dispatcher.start_polling(bot)
+    finally:
+        await bot.session.close()
+
+
+async def _run_webhook(
+    settings: Settings, bot: Bot, dispatcher: Dispatcher
+) -> None:
+    """Запуск бота через webhook (текущее поведение)."""
+    logger.info("Запуск бота в webhook-режиме")
     app = create_app(settings=settings, bot=bot, dispatcher=dispatcher)
 
     config = uvicorn.Config(
@@ -27,9 +44,6 @@ async def _run() -> None:
 
     shutdown_event = asyncio.Event()
 
-    async def cleanup() -> None:
-        await bot.session.close()
-
     def signal_handler() -> None:
         shutdown_event.set()
 
@@ -38,26 +52,34 @@ async def _run() -> None:
         loop.add_signal_handler(sig, signal_handler)
 
     serve_task = asyncio.create_task(server.serve())
-    
+
     try:
-        # Wait for shutdown signal
         await shutdown_event.wait()
-        # Properly shutdown the server and await completion
         await server.shutdown()
-        # Wait for serve task to complete
         try:
             await serve_task
         except asyncio.CancelledError:
             pass
     finally:
-        # Ensure serve task is cancelled if still running
         if not serve_task.done():
             serve_task.cancel()
             try:
                 await serve_task
             except asyncio.CancelledError:
                 pass
-        await cleanup()
+        await bot.session.close()
+
+
+async def _run() -> None:
+    settings = load_settings()
+    configure_logging(level=settings.log_level)
+
+    bot, dispatcher = create_bot_and_dispatcher(settings)
+
+    if settings.use_polling:
+        await _run_polling(bot, dispatcher)
+    else:
+        await _run_webhook(settings, bot, dispatcher)
 
 
 def run() -> Any:
